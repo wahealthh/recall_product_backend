@@ -1,0 +1,24 @@
+{% extends 'base.html' %} {% block content %}
+
+<h2>Appointment Confirmation</h2>
+<p>Dear {{ patient_name }},</p>
+
+<p>Your appointment has been scheduled for:</p>
+<ul>
+  <li><strong>Date:</strong> {{ appointment_date }}</li>
+  <li><strong>Time:</strong> {{ appointment_time }}</li>
+</ul>
+
+{% if appointment_details.doctor_name %}
+<p><strong>Doctor:</strong> {{ appointment_details.doctor_name }}</p>
+{% endif %} {% if appointment_details.location %}
+<p><strong>Location:</strong> {{ appointment_details.location }}</p>
+{% endif %} {% if appointment_details.notes %}
+<p><strong>Notes:</strong> {{ appointment_details.notes }}</p>
+{% endif %}
+
+<p>If you need to reschedule or have any questions, please contact us.</p>
+
+<p>Thank you for choosing our services!</p>
+
+{% endblock %}
