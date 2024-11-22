@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Request, status, HTTPException
+from fastapi import APIRouter, status, HTTPException
 from jinja2 import Environment, select_autoescape, PackageLoader
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 from app.config.config import settings
-
+from app.schema.mail import AppointmentEmail
 
 router = APIRouter(prefix="/mail", tags=["Mail management"])
+
 
 jinja2_env = Environment(
     loader=PackageLoader("app"), autoescape=select_autoescape(["html", "xml"])
@@ -14,29 +15,27 @@ jinja2_env = Environment(
 sg_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
 
 
-@router.post("/confirmation_email", status_code=status.HTTP_201_CREATED)
-async def send_confirmation_email(request: Request):
+@router.post(
+    "/confirmation_email",
+    status_code=status.HTTP_201_CREATED,
+    summary="Send appointment confirmation email",
+    description="Sends an email confirmation for a scheduled appointment",
+    response_description="Email sent successfully",
+)
+async def send_confirmation_email(appointment: AppointmentEmail):
     try:
-        appointment_data = await request.json()
         template = jinja2_env.get_template("mail.html")
-
-        appointment_date = appointment_data.get("appointment_date", "Not specified")
-        appointment_time = appointment_data.get("appointment_time", "Not specified")
-        patient_name = appointment_data.get("patient_name", "Patient")
-        patient_email = appointment_data.get("patient_email", "Not specified")
-
         html = template.render(
-            patient_name=patient_name,
-            appointment_date=appointment_date,
-            appointment_time=appointment_time,
-            appointment_details=appointment_data,
-            patient_email=patient_email,
+            patient_name=appointment.patient_name,
+            appointment_date=appointment.appointment_date,
+            appointment_time=appointment.appointment_time,
+            appointment_details=appointment.model_dump(),
         )
 
         mail = Mail(
             from_email=settings.SENDER_EMAIL,
-            to_emails=patient_email,
-            subject=f"Appointment Confirmation for {patient_name}",
+            to_emails=appointment.patient_email,
+            subject=f"Appointment Confirmation for {appointment.patient_name}",
             html_content=html,
         )
 
