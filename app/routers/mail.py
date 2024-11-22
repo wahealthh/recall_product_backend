@@ -4,7 +4,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 from app.config.config import settings
-from app.schema.mail import AppointmentEmail
+from app.schema.mail import BotEmailRequest
 
 router = APIRouter(prefix="/mail", tags=["Mail management"])
 
@@ -20,10 +20,10 @@ sg_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
     status_code=status.HTTP_201_CREATED,
     summary="Send appointment confirmation email",
     description="Sends an email confirmation for a scheduled appointment",
-    response_description="Email sent successfully",
 )
-async def send_confirmation_email(appointment: AppointmentEmail):
+async def send_confirmation_email(request: BotEmailRequest):
     try:
+        appointment = request.appointment_data
         template = jinja2_env.get_template("mail.html")
         html = template.render(
             patient_name=appointment.patient_name,

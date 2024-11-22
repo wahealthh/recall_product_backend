@@ -2,23 +2,28 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 
-class AppointmentEmail(BaseModel):
-    patient_name: str
+class AppointmentData(BaseModel):
+    notes: Optional[str] = None
+    gp_name: Optional[str] = None
     patient_email: EmailStr
     appointment_date: str
     appointment_time: str
-    gp_name: Optional[str] = None
-    notes: Optional[str] = None
+    patient_name: Optional[str] = None
+
+
+class BotEmailRequest(BaseModel):
+    appointment_data: AppointmentData
 
     class Config:
         json_schema_extra = {
             "example": {
-                "patient_name": "John Doe",
-                "patient_email": "john@example.com",
-                "appointment_date": "2024-03-15",
-                "appointment_time": "2:30 PM",
-                "doctor_name": "Dr. Smith",
-                "location": "Main Clinic",
-                "notes": "Regular checkup",
+                "appointment_data": {
+                    "notes": "Hypertension check-up",
+                    "gp_name": "Ross Road Medical Centre",
+                    "patient_email": "patient@example.com",
+                    "appointment_date": "Monday",
+                    "appointment_time": "2 PM",
+                    "patient_name": "John Doe",
+                }
             }
         }

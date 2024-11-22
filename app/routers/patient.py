@@ -42,6 +42,7 @@ async def call_due_patients():
                     "first_name": due_patients[0]["first_name"],
                     "last_name": due_patients[0]["last_name"],
                     "dob": due_patients[0]["dob"],
+                    "email": due_patients[0]["email"],
                 }
             },
         )
