@@ -28,7 +28,8 @@ async def send_confirmation_email(request: BotEmailRequest):
         html = template.render(
             patient_name=appointment.patient_name,
             appointment_date=appointment.appointment_date,
-            appointment_time=appointment.appointment_time,
+            appointment_time=appointment.appointment_time,  
+            gp_name=appointment.gp_name,
             appointment_details=appointment.model_dump(),
         )
 
