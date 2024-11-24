@@ -10,20 +10,15 @@ class AppointmentData(BaseModel):
     appointment_time: str
     patient_name: Optional[str] = None
 
-
-class BotEmailRequest(BaseModel):
-    appointment_data: AppointmentData
-
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
-                "appointment_data": {
-                    "notes": "Hypertension check-up",
-                    "gp_name": "Ross Road Medical Centre",
-                    "patient_email": "patient@example.com",
-                    "appointment_date": "Monday",
-                    "appointment_time": "2 PM",
-                    "patient_name": "John Doe",
-                }
+                "notes": "Hypertension check-up",
+                "gp_name": "Ross Road Medical Centre",
+                "patient_email": "0xnuru@gmail.com",
+                "appointment_date": "02-03-2025",
+                "appointment_time": "10:00",
+                "patient_name": "John Doe",
             }
         }
+    }

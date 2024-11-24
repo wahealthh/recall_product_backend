@@ -1,10 +1,10 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, Request, status, HTTPException
 from jinja2 import Environment, select_autoescape, PackageLoader
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 from app.config.config import settings
-from app.schema.mail import BotEmailRequest
+from app.schema.mail import AppointmentData
 
 router = APIRouter(prefix="/mail", tags=["Mail management"])
 
@@ -21,14 +21,21 @@ sg_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
     summary="Send appointment confirmation email",
     description="Sends an email confirmation for a scheduled appointment",
 )
-async def send_confirmation_email(request: BotEmailRequest):
+async def send_confirmation_email(request: Request):
     try:
-        appointment = request.appointment_data
+        data = await request.json()
+
+        appointment_raw = data["message"]["tool_calls"][0]["function"]["arguments"][
+            "appointment_data"
+        ]
+
+        appointment = AppointmentData(**appointment_raw)
+
         template = jinja2_env.get_template("mail.html")
         html = template.render(
             patient_name=appointment.patient_name,
             appointment_date=appointment.appointment_date,
-            appointment_time=appointment.appointment_time,  
+            appointment_time=appointment.appointment_time,
             gp_name=appointment.gp_name,
             appointment_details=appointment.model_dump(),
         )
@@ -46,6 +53,11 @@ async def send_confirmation_email(request: BotEmailRequest):
             "message": "Email sent successfully",
             "status_code": response.status_code,
         }
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required field in request structure: {str(e)}",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
