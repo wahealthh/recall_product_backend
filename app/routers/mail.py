@@ -54,11 +54,13 @@ async def send_confirmation_email(request: Request):
             "status_code": response.status_code,
         }
     except KeyError as e:
+        print(f"Missing required field in request structure: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Missing required field in request structure: {str(e)}",
         )
     except Exception as e:
+        print(f"Error sending mail: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error sending mail: {str(e)}",
