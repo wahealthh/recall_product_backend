@@ -24,6 +24,7 @@ sg_client = SendGridAPIClient(settings.SENDGRID_API_KEY)
 async def send_confirmation_email(request: Request):
     try:
         data = await request.json()
+        print(data)
 
         appointment_raw = data["message"]["tool_calls"][0]["function"]["arguments"][
             "appointment_data"
