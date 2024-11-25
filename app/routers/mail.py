@@ -26,7 +26,7 @@ async def send_confirmation_email(request: Request):
         data = await request.json()
         print(data)
 
-        appointment_raw = data["message"]["tool_calls"][0]["function"]["arguments"][
+        appointment_raw = data["message"]["toolCalls"][0]["function"]["arguments"][
             "appointment_data"
         ]
 
