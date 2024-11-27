@@ -29,3 +29,15 @@ class Customer(BaseModel):
 
     class Config:
         exclude_none = True
+
+
+class CallHistory(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    summary: Optional[str] = None
+    minutes: Optional[float] = None
+    # appointment_date: Optional[str] = None
+    # appointment_time: Optional[str] = None
+    # booking_status: Optional[str] = None
+    # summary: Optional[str] = None
