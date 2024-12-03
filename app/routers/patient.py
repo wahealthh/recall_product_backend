@@ -32,7 +32,7 @@ async def call_due_patients():
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No due patients found",
         )
-    customer = Customer.model_validate(due_patients[3])
+    customer = Customer.model_validate(due_patients[0])
     try:
         call = vapi_client.calls.create(
             assistant_id=settings.ASSISTANT_ID,
@@ -62,7 +62,7 @@ async def call_due_patients():
     description="Retrieve all calls from Vapi",
     # response_model=list[CallHistory],
 )
-async def get_calls(limit: int = 40):
+async def get_calls(limit: int = 10):
     try:
         calls = vapi_client.calls.list(limit=limit)
         call_objects = [call.model_dump() for call in calls]
@@ -77,6 +77,34 @@ async def get_calls(limit: int = 40):
                     if cost["type"] == "vapi":
                         minutes = cost["minutes"]
                         break
+
+            messages = call.get("messages")
+            arguments = None
+            status = "Incomplete"
+            stereo_recording_url = None
+            if messages:
+                for message in messages:
+                    if message["role"] == "tool_calls":
+                        for tool_call in message["tool_calls"]:
+                            if tool_call["function"]["name"] == "sendAppointmentEmail":
+                                arguments = json.loads(
+                                    tool_call["function"]["arguments"]
+                                )
+                    elif (
+                        message.get("type") == "function"
+                        and message["function"]["name"] == "sendAppointmentEmail"
+                    ):
+                        arguments = json.loads(message["function"]["arguments"])
+
+                    if (
+                        message.get("role") == "tool_call_result"
+                        and message.get("name") == "sendAppointmentEmail"
+                    ):
+                        status = message["result"]
+
+            if call.get("stereoRecordingUrl"):
+                stereo_recording_url = call.get("stereoRecordingUrl")
+
             if variable_values:
                 call_info = CallHistory(
                     first_name=variable_values.get("first_name"),
@@ -84,6 +112,19 @@ async def get_calls(limit: int = 40):
                     phone=call.get("customer").get("number"),
                     summary=call.get("summary"),
                     minutes=minutes,
+                    appointment_date=(
+                        arguments.get("appointment_data", {}).get("appointment_date")
+                        if arguments
+                        else None
+                    ),
+                    appointment_time=(
+                        arguments.get("appointment_data", {}).get("appointment_time")
+                        if arguments
+                        else None
+                    ),
+                    call_date=call.get("created_at"),
+                    status=status,
+                    stereo_recording_url=stereo_recording_url,
                 )
                 processed_calls.append(call_info)
 
@@ -92,4 +133,20 @@ async def get_calls(limit: int = 40):
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Failed to fetch calls", "error": str(e.body)},
+        )
+
+
+@router.delete(
+    "/calls/{call_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete a call",
+    description="Delete a specific call from Vapi",
+)
+async def delete_call(call_id: str):
+    try:
+        return vapi_client.calls.delete(id=call_id)
+    except ApiError as e:
+        raise HTTPException(
+            status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to delete call", "error": str(e.body)},
         )

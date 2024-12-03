@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, constr
 
@@ -37,7 +38,10 @@ class CallHistory(BaseModel):
     phone: Optional[str] = None
     summary: Optional[str] = None
     minutes: Optional[float] = None
-    # appointment_date: Optional[str] = None
-    # appointment_time: Optional[str] = None
+    appointment_date: Optional[str] = None
+    appointment_time: Optional[str] = None
+    call_date: Optional[datetime.datetime] = None
+    status: Optional[str] = None
+    stereo_recording_url: Optional[str] = None
     # booking_status: Optional[str] = None
     # summary: Optional[str] = None
