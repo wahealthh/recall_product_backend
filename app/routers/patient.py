@@ -59,74 +59,97 @@ async def call_due_patients():
     "/calls",
     status_code=status.HTTP_200_OK,
     summary="Get all calls",
-    description="Retrieve all calls from Vapi",
-    # response_model=list[CallHistory],
+    description="Retrieve all calls from Vapi in batches of 10",
 )
 async def get_calls(limit: int = 10):
     try:
-        calls = vapi_client.calls.list(limit=limit)
-        call_objects = [call.model_dump() for call in calls]
-
+        if limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than 0",
+            )
+        BATCH_SIZE = 10
         processed_calls = []
-        for call in call_objects:
-            variable_values = call.get("assistant_overrides").get("variable_values")
-            minutes = 0
-            costs = call.get("costs")
-            if costs:
-                for cost in costs:
-                    if cost["type"] == "vapi":
-                        minutes = cost["minutes"]
-                        break
+        total_fetched = 0
 
-            messages = call.get("messages")
-            arguments = None
-            status = "Incomplete"
-            stereo_recording_url = None
-            if messages:
-                for message in messages:
-                    if message["role"] == "tool_calls":
-                        for tool_call in message["tool_calls"]:
-                            if tool_call["function"]["name"] == "sendAppointmentEmail":
-                                arguments = json.loads(
-                                    tool_call["function"]["arguments"]
-                                )
-                    elif (
-                        message.get("type") == "function"
-                        and message["function"]["name"] == "sendAppointmentEmail"
-                    ):
-                        arguments = json.loads(message["function"]["arguments"])
+        while total_fetched < limit:
+            current_batch = vapi_client.calls.list(limit=BATCH_SIZE)
+            if not current_batch:
+                break
 
-                    if (
-                        message.get("role") == "tool_call_result"
-                        and message.get("name") == "sendAppointmentEmail"
-                    ):
-                        status = message["result"]
+            for call in current_batch:
+                if total_fetched >= limit:
+                    break
 
-            if call.get("stereoRecordingUrl"):
-                stereo_recording_url = call.get("stereoRecordingUrl")
-
-            if variable_values:
-                call_info = CallHistory(
-                    first_name=variable_values.get("first_name"),
-                    last_name=variable_values.get("last_name"),
-                    phone=call.get("customer").get("number"),
-                    summary=call.get("summary"),
-                    minutes=minutes,
-                    appointment_date=(
-                        arguments.get("appointment_data", {}).get("appointment_date")
-                        if arguments
-                        else None
-                    ),
-                    appointment_time=(
-                        arguments.get("appointment_data", {}).get("appointment_time")
-                        if arguments
-                        else None
-                    ),
-                    call_date=call.get("created_at"),
-                    status=status,
-                    stereo_recording_url=stereo_recording_url,
+                call_dict = call.model_dump()
+                variable_values = call_dict.get("assistant_overrides", {}).get(
+                    "variable_values", {}
                 )
-                processed_calls.append(call_info)
+                minutes = 0
+                costs = call_dict.get("costs")
+                if costs:
+                    for cost in costs:
+                        if cost["type"] == "vapi":
+                            minutes = cost["minutes"]
+                            break
+
+                messages = call_dict.get("messages")
+                arguments = None
+                status = "Incomplete"
+                stereo_recording_url = None
+                if messages:
+                    for message in messages:
+                        if message["role"] == "tool_calls":
+                            for tool_call in message["tool_calls"]:
+                                if (
+                                    tool_call["function"]["name"]
+                                    == "sendAppointmentEmail"
+                                ):
+                                    arguments = json.loads(
+                                        tool_call["function"]["arguments"]
+                                    )
+                        elif (
+                            message.get("type") == "function"
+                            and message["function"]["name"] == "sendAppointmentEmail"
+                        ):
+                            arguments = json.loads(message["function"]["arguments"])
+
+                        if (
+                            message.get("role") == "tool_call_result"
+                            and message.get("name") == "sendAppointmentEmail"
+                        ):
+                            status = message["result"]
+
+                if call_dict.get("stereoRecordingUrl"):
+                    stereo_recording_url = call_dict.get("stereoRecordingUrl")
+
+                if variable_values:
+                    call_info = CallHistory(
+                        first_name=variable_values.get("first_name"),
+                        last_name=variable_values.get("last_name"),
+                        phone=call_dict.get("customer", {}).get("number"),
+                        summary=call_dict.get("summary"),
+                        minutes=minutes,
+                        appointment_date=(
+                            arguments.get("appointment_data", {}).get(
+                                "appointment_date"
+                            )
+                            if arguments
+                            else None
+                        ),
+                        appointment_time=(
+                            arguments.get("appointment_data", {}).get(
+                                "appointment_time"
+                            )
+                            if arguments
+                            else None
+                        ),
+                        call_date=call_dict.get("created_at"),
+                        status=status,
+                        stereo_recording_url=stereo_recording_url,
+                    )
+                    processed_calls.append(call_info)
+                    total_fetched += 1
 
         return processed_calls
     except ApiError as e:
