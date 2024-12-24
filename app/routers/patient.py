@@ -83,9 +83,19 @@ async def get_calls(limit: int = 10):
                     break
 
                 call_dict = call.model_dump()
-                variable_values = call_dict.get("assistant_overrides", {}).get(
-                    "variable_values", {}
-                )
+                print(call_dict.get("id"))
+
+                if call_dict is None:
+                    raise ValueError("call.model_dump() returned None")
+
+                assistant_overrides = call_dict.get("assistant_overrides", {})
+
+                if assistant_overrides is None:
+                    print("assistant_overrides is None in call_dict")
+                    continue
+                    # raise ValueError("assistant_overrides is None in call_dict")
+
+                variable_values = assistant_overrides.get("variable_values", {})
                 minutes = 0
                 costs = call_dict.get("costs")
                 if costs:
