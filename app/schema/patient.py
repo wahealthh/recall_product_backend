@@ -33,6 +33,7 @@ class Customer(BaseModel):
 
 
 class CallHistory(BaseModel):
+    id: str = Field(description="Call ID")
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None

@@ -136,6 +136,7 @@ async def get_calls(limit: int = 10):
 
                 if variable_values:
                     call_info = CallHistory(
+                        id=call_dict.get("id"),
                         first_name=variable_values.get("first_name"),
                         last_name=variable_values.get("last_name"),
                         phone=call_dict.get("customer", {}).get("number"),
