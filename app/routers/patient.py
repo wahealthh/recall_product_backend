@@ -34,16 +34,17 @@ async def call_due_patients():
         )
     customer = Customer.model_validate(due_patients[0])
     try:
+        patient_info = due_patients[0]
         call = vapi_client.calls.create(
             assistant_id=settings.ASSISTANT_ID,
             customer=customer,
             phone_number_id=settings.PHONE_NUMBER_ID,
             assistant_overrides={
                 "variable_values": {
-                    "first_name": due_patients[0]["first_name"],
-                    "last_name": due_patients[0]["last_name"],
-                    "dob": due_patients[0]["dob"],
-                    "email": due_patients[0]["email"],
+                    "first_name": patient_info["first_name"],
+                    "last_name": patient_info["last_name"],
+                    "dob": patient_info["dob"],
+                    "email": patient_info["email"],
                 }
             },
         )
