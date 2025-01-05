@@ -32,9 +32,9 @@ async def call_due_patients():
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No due patients found",
         )
-    customer = Customer.model_validate(due_patients[0])
+    customer = Customer.model_validate(due_patients[6])
     try:
-        patient_info = due_patients[0]
+        patient_info = due_patients[6]
         call = vapi_client.calls.create(
             assistant_id=settings.ASSISTANT_ID,
             customer=customer,
