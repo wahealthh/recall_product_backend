@@ -4,7 +4,7 @@ from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
 
-from app.schema.patient import CallHistory, Customer
+from app.schema.patient import CallHistory, Customer, Patient
 from app.config.config import settings
 
 
@@ -53,6 +53,48 @@ async def call_due_patients():
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Failed to create call", "error": str(e.body)},
+        )
+
+
+@router.post(
+    "/call_patient",
+    status_code=status.HTTP_200_OK,
+    summary="Call a single patient",
+    description="Initiate a call to a specific patient using their information",
+)
+async def call_patient(patient: Patient):
+    try:
+        customer = Customer(
+            number=patient.number,
+        )
+
+        call = vapi_client.calls.create(
+            assistant_id=settings.ASSISTANT_ID,
+            customer=customer,
+            phone_number_id=settings.PHONE_NUMBER_ID,
+            assistant_overrides={
+                "variable_values": {
+                    "first_name": patient.first_name,
+                    "last_name": patient.last_name,
+                    "dob": patient.dob,
+                    "email": patient.email,
+                }
+            },
+        )
+        return call
+    except ApiError as e:
+        error_detail = str(e.body) if hasattr(e, "body") else str(e)
+        raise HTTPException(
+            status_code=(
+                e.status_code
+                if hasattr(e, "status_code")
+                else status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail={
+                "message": "Failed to create call",
+                "error": error_detail,
+                "patient": patient.model_dump(),
+            },
         )
 
 

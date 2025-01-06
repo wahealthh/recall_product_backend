@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field, constr
 class Patient(BaseModel):
     first_name: str
     last_name: str
-    phone: str
+    email: str
+    number: str
     dob: str
 
 
