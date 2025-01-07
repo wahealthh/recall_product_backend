@@ -15,6 +15,7 @@ app.add_middleware(
         "http://127.0.0.1:5502",
         "http://localhost:5174",
         "http://localhost:5173",
+        "https://wa-health-pwa.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
