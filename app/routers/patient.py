@@ -227,3 +227,29 @@ async def delete_call(call_id: str):
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Failed to delete call", "error": str(e.body)},
         )
+
+
+@router.get(
+    "/calls/{call_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get a single call",
+    description="Retrieve a specific call from Vapi using its ID",
+)
+async def get_call(call_id: str):
+    try:
+        call = vapi_client.calls.get(id=call_id)
+        return call.model_dump()
+    except ApiError as e:
+        error_detail = str(e.body) if hasattr(e, "body") else str(e)
+        raise HTTPException(
+            status_code=(
+                e.status_code
+                if hasattr(e, "status_code")
+                else status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail={
+                "message": "Failed to fetch call",
+                "error": error_detail,
+                "call_id": call_id,
+            },
+        )
