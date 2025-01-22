@@ -8,7 +8,7 @@ HEADERS = {"x-api-key": settings.POSTMAN_API_KEY}
 BASE_URL = settings.POSTMAN_BASE_URL
 
 
-async def get_due_patients():
+async def get_due_patients_util():
     """
     Retrieve patients who are due for recall.
 

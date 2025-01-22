@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException
-from app.utils.patient import get_due_patients
+from app.utils.patient import get_due_patients_util
 from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
@@ -12,11 +12,17 @@ vapi_client = Vapi(
     token=settings.VAPI_API_KEY,
 )
 
-router = APIRouter(
-    prefix="/patients",
-    tags=["Patients"],
-    responses={404: {"description": "Not found"}},
+router = APIRouter(prefix="/patients", tags=["Patients"])
+
+
+@router.get(
+    "/due_patients",
+    status_code=status.HTTP_200_OK,
+    summary="Get due patients",
+    description="Get due patients",
 )
+async def get_due_patients():
+    return await get_due_patients_util()
 
 
 @router.post(
@@ -32,9 +38,9 @@ async def call_due_patients():
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No due patients found",
         )
-    customer = Customer.model_validate(due_patients[6])
+    customer = Customer.model_validate(due_patients[15])
     try:
-        patient_info = due_patients[6]
+        patient_info = due_patients[15]
         call = vapi_client.calls.create(
             assistant_id=settings.ASSISTANT_ID,
             customer=customer,
