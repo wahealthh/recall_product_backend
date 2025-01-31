@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from fastapi import APIRouter, status, HTTPException
 from app.utils.patient import get_due_patients_util
 from vapi import Vapi
@@ -73,6 +73,7 @@ async def call_due_patients():
     description="Initiate a call to a specific patient using their information",
 )
 async def call_patient(patient: Patient):
+    current_datetime = datetime.now()
     try:
         customer = Customer(
             number=patient.number,
@@ -88,6 +89,8 @@ async def call_patient(patient: Patient):
                     "last_name": patient.last_name,
                     "dob": patient.dob,
                     "email": patient.email,
+                    "current_date": current_datetime.strftime("%Y-%m-%d"),
+                    "current_day": current_datetime.strftime("%A"),
                 }
             },
         )
