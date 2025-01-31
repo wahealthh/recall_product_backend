@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, status, HTTPException
 from app.utils.patient import get_due_patients_util
 from vapi import Vapi
@@ -32,6 +33,7 @@ async def get_due_patients():
     description="Call due patients",
 )
 async def call_due_patients():
+    current_datetime = datetime.now()
     due_patients = await get_due_patients()
     if not due_patients:
         raise HTTPException(
@@ -51,6 +53,8 @@ async def call_due_patients():
                     "last_name": patient_info["last_name"],
                     "dob": patient_info["dob"],
                     "email": patient_info["email"],
+                    "current_date": current_datetime.strftime("%Y-%m-%d"),
+                    "current_day": current_datetime.strftime("%A"),
                 }
             },
         )
