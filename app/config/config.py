@@ -24,5 +24,14 @@ class Settings(BaseSettings):
     POSTMAN_API_KEY: str
     POSTMAN_BASE_URL: str
 
+    project_name: str = "WA Health"
+
+    #  database settings
+    DB_USER: str
+    DB_PASSWORD: str
+    DB_NAME: str
+    DB_HOST: str
+    DB_PORT: str
+
 
 settings = Settings()
