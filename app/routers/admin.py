@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 import httpx
 
@@ -16,19 +16,20 @@ router = APIRouter(prefix="/admin", tags=["Admin Management"])
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    request: CreateAdmin, 
-    http_request: Request, 
-    db: Session = Depends(load)
+    response: Response,
+    request: CreateAdmin,
+    http_request: Request,
+    db: Session = Depends(load),
 ):
     """
     Two-step registration process:
     1. Register with auth service to create user credentials
     2. Create admin record in local database with additional details
-    
+
     Parameters:
     - request (CreateAdmin): An object containing admin details
     - db (Session): Database session
-    
+
     Returns:
     - Dict containing admin details and registration status
     """
@@ -37,14 +38,13 @@ async def register(
         "email": request.email,
         "password1": request.password1.get_secret_value(),
         "password2": request.password2.get_secret_value(),
-        "role": "admin" 
+        "role": "admin",
     }
 
     try:
         async with httpx.AsyncClient() as client:
             auth_response = await client.post(
-                "http://localhost:8001/auth/register",
-                json=auth_payload
+                "http://localhost:8001/auth/register", json=auth_payload
             )
             auth_response.raise_for_status()
             auth_data = auth_response.json()
@@ -52,8 +52,8 @@ async def register(
             user_id = auth_data["id"]
     except httpx.HTTPError as e:
         raise HTTPException(
-            status_code=e.response.status_code if hasattr(e, 'response') else 500,
-            detail=e.response.json() if hasattr(e, 'response') else str(e)
+            status_code=e.response.status_code if hasattr(e, "response") else 500,
+            detail=e.response.json() if hasattr(e, "response") else str(e),
         )
 
     new_admin = Admin(
@@ -69,7 +69,7 @@ async def register(
         # This would require an additional endpoint in the auth service
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=[{"msg": f"Failed to create admin record: {str(e)}"}]
+            detail=[{"msg": f"Failed to create admin record: {str(e)}"}],
         )
 
     return {
@@ -77,7 +77,9 @@ async def register(
         "first_name": request.first_name,
         "last_name": request.last_name,
         "email": request.email,
-        "message": "Admin registration successful"
+        "message": "Admin registration successful",
+        "access_token": auth_data["access_token"],
+        "token_type": "bearer",
     }
 
 
