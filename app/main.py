@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import patient
 from app.routers import mail
 from app.routers import admin
+from app.routers import practice
 
 app = fastapi.FastAPI()
 
@@ -31,3 +32,4 @@ def read_root():
 app.include_router(patient.router)
 app.include_router(mail.router)
 app.include_router(admin.router)
+app.include_router(practice.router)

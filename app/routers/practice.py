@@ -18,7 +18,17 @@ async def create_practice(
 ):
     """Create a new practice (admin only)"""
     # Get admin from database using auth service user_id
-    admin = db.query(Admin).filter(Admin.id == user_data["id"]).first()
+    print(user_data)
+    
+    # Check if practice with this email already exists
+    existing_practice = db.query_eng(Practice).filter(Practice.practice_email == request.practice_email).first()
+    if existing_practice:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Practice with email '{request.practice_email}' already exists"
+        )
+    
+    admin = db.query_eng(Admin).filter(Admin.id == user_data["user_id"]).first()
     if not admin:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
