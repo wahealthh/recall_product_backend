@@ -7,6 +7,7 @@ import httpx
 from app.config.config import settings
 from app.engine.load import load
 from app.models.admin import Admin
+from app.models.practice import Practice
 from app.schema.admin import CreateAdmin
 from app.utils.auth import verify_admin, verify_token
 
@@ -89,5 +90,62 @@ async def protected_endpoint(user: dict = Depends(verify_admin)):
 
 
 @router.get("/me")
-def me(user: dict = Depends(verify_token)):
-    return {"message": "User authenticated", "user": user}
+def me(
+    user: dict = Depends(verify_admin),
+    db: Session = Depends(load)
+):
+    """
+    Get authenticated admin's profile information including their associated practice.
+    
+    This endpoint returns the authenticated admin's details along with information
+    about the practice they are associated with.
+    
+    Parameters:
+    - user: Admin authentication data from the token verification
+    - db: Database session
+    
+    Returns:
+    - Admin details and associated practice information
+    
+    Raises:
+    - 404 Not Found: If the admin or their practice is not found in the database
+    """
+    # Get admin from database
+    admin = db.query_eng(Admin).filter(Admin.id == user["user_id"]).first()
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Admin not found in database"
+        )
+    
+    # Get practice associated with this admin
+    practice = db.query_eng(Practice).filter(Practice.admin_id == admin.id).first()
+    
+    # Prepare response with admin and practice info
+    response = {
+        "message": "User authenticated",
+        "user": user,
+        "admin": {
+            "id": admin.id,
+            "first_name": admin.first_name,
+            "last_name": admin.last_name,
+            "created_at": admin.created_at,
+            "updated_at": admin.updated_at
+        }
+    }
+    
+    # Add practice info if available
+    if practice:
+        response["practice"] = {
+            "id": practice.id,
+            "practice_name": practice.practice_name,
+            "practice_email": practice.practice_email,
+            "practice_phone_number": practice.practice_phone_number,
+            "practice_address": practice.practice_address,
+            "created_at": practice.created_at,
+            "updated_at": practice.updated_at
+        }
+    else:
+        response["practice"] = None
+    
+    return response
