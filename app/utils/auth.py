@@ -3,7 +3,7 @@ import httpx
 from typing import Optional
 from app.utils.cookies import OAuth2PasswordBearerWithCookie
 
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="http://localhost:8001/auth/token")
+oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="https://auth.wahealth.co.uk/auth/token")
 
 
 async def verify_token(token: str = Depends(oauth2_scheme)):
@@ -12,7 +12,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         async with httpx.AsyncClient() as client:
             # Send token in the expected format
             response = await client.post(
-                "http://localhost:8001/auth/verify_token",
+                "https://auth.wahealth.co.uk/auth/verify_token",
                 json={"token": token} 
             )
 
@@ -65,7 +65,7 @@ async def verify_unverified_user(token: str = Depends(oauth2_scheme)):
         async with httpx.AsyncClient() as client:
             # Send token in the expected format
             response = await client.post(
-                "http://localhost:8001/auth/verify_token",
+                "https://auth.wahealth.co.uk/auth/verify_token",
                 json={"token": token} 
             )
             
