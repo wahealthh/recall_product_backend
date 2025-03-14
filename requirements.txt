@@ -7,9 +7,16 @@ python-dotenv==1.0.1
 requests==2.32.3
 vapi_server_sdk==0.1.0
 
+# database
+sqlalchemy==2.0.38
+psycopg2-binary==2.9.10
+alembic==1.14.1
+
 # mail
-sendgrid
+sendgrid==6.11.0
 
 #templating syntax
-jinja2
+jinja2==3.1.5
 
+# async requests
+httpx==0.28.1
