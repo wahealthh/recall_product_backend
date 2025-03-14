@@ -45,7 +45,7 @@ async def register(
     try:
         async with httpx.AsyncClient() as client:
             auth_response = await client.post(
-                "http://localhost:8001/auth/register", json=auth_payload
+                "https://auth.wahealth.co.uk/auth/register", json=auth_payload
             )
             auth_response.raise_for_status()
             auth_data = auth_response.json()
