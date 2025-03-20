@@ -16,6 +16,7 @@ app.add_middleware(
         "http://localhost:5173",
         "https://wa-health-pwa.onrender.com",
         "http://localhost:8001",
+        "https://rapid-recall.wahealth.co.uk",
         "http://localhost:8000",
     ],
     allow_credentials=True,
