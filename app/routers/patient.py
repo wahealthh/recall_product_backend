@@ -117,30 +117,36 @@ async def call_patient(patient: Patient):
     summary="Get all calls",
     description="Retrieve all calls from Vapi in batches of 10",
 )
-async def get_calls(limit: int = 10):
+async def get_calls(limit: int = 1):
     try:
+        print(f"[DEBUG] Starting get_calls with limit: {limit}")
         if limit <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Limit must be greater than 0",
             )
-        BATCH_SIZE = 10
+        BATCH_SIZE = 10 if limit > 10 else limit
         processed_calls = []
         total_fetched = 0
 
         while total_fetched < limit:
+            print(f"[DEBUG] Fetching batch, total_fetched: {total_fetched}, limit: {limit}")
             current_batch = vapi_client.calls.list(limit=BATCH_SIZE)
+            print(f"[DEBUG] Received batch with {len(current_batch) if current_batch else 0} calls")
             if not current_batch:
+                print("[DEBUG] Empty batch received, breaking loop")
                 break
 
             for call in current_batch:
                 if total_fetched >= limit:
+                    print("[DEBUG] Reached limit, breaking loop")
                     break
 
                 call_dict = call.model_dump()
-                print(call_dict.get("id"))
+                print(f"[DEBUG] Processing call with ID: {call_dict.get('id')}")
 
                 if call_dict is None:
+                    print("[DEBUG] ERROR: call.model_dump() returned None")
                     raise ValueError("call.model_dump() returned None")
 
                 assistant_overrides = call_dict.get("assistant_overrides", {})
@@ -217,30 +223,19 @@ async def get_calls(limit: int = 10):
                     )
                     processed_calls.append(call_info)
                     total_fetched += 1
+                    print(f"[DEBUG] Added call to processed_calls, total_fetched now: {total_fetched}")
+                else:
+                    print(f"[DEBUG] Skipping call {call_dict.get('id')} - no variable_values")
+                    total_fetched += 1
 
+        print(f"[DEBUG] Returning {len(processed_calls)} processed calls")
         return processed_calls
     except ApiError as e:
+        print(f"[DEBUG] ApiError: {str(e)}")
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Failed to fetch calls", "error": str(e.body)},
         )
-
-
-@router.delete(
-    "/calls/{call_id}",
-    status_code=status.HTTP_200_OK,
-    summary="Delete a call",
-    description="Delete a specific call from Vapi",
-)
-async def delete_call(call_id: str):
-    try:
-        return vapi_client.calls.delete(id=call_id)
-    except ApiError as e:
-        raise HTTPException(
-            status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"message": "Failed to delete call", "error": str(e.body)},
-        )
-
 
 @router.get(
     "/calls/{call_id}",
@@ -266,3 +261,21 @@ async def get_call(call_id: str):
                 "call_id": call_id,
             },
         )
+
+
+
+@router.delete(
+    "/calls/{call_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete a call",
+    description="Delete a specific call from Vapi",
+)
+async def delete_call(call_id: str):
+    try:
+        return vapi_client.calls.delete(id=call_id)
+    except ApiError as e:
+        raise HTTPException(
+            status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to delete call", "error": str(e.body)},
+        )
+
