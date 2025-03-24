@@ -51,6 +51,10 @@ async def register(
             auth_data = auth_response.json()
             print(auth_data)
             user_id = auth_data["id"]
+            
+            # Forward the cookie from auth service if it exists
+            if "set-cookie" in auth_response.headers:
+                response.headers["set-cookie"] = auth_response.headers["set-cookie"]
     except httpx.HTTPError as e:
         raise HTTPException(
             status_code=e.response.status_code if hasattr(e, "response") else 500,
