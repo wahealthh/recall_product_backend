@@ -5,7 +5,7 @@ pydantic-settings==2.6.1
 pydantic[email]
 python-dotenv==1.0.1
 requests==2.32.3
-vapi_server_sdk==0.1.0
+vapi_server_sdk==0.6.2
 
 # database
 sqlalchemy==2.0.38
