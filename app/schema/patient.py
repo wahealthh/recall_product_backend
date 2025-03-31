@@ -11,6 +11,15 @@ class Patient(BaseModel):
     dob: str
 
 
+class DemoPatient(BaseModel):
+    """Simplified patient model for demo purposes with only essential fields"""
+    first_name: str
+    last_name: str
+    number: str
+    email: str
+    dob: str
+
+
 class Customer(BaseModel):
     number: str = Field(description="Customer's phone number", min_length=3)
     numberE164CheckEnabled: Optional[bool] = Field(

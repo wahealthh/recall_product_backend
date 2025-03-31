@@ -5,7 +5,7 @@ from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
 
-from app.schema.patient import CallHistory, Customer, Patient
+from app.schema.patient import CallHistory, Customer, Patient, DemoPatient
 from app.config.config import settings
 
 
@@ -277,5 +277,57 @@ async def delete_call(call_id: str):
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Failed to delete call", "error": str(e.body)},
+        )
+
+
+@router.post(
+    "/demo/call",
+    status_code=status.HTTP_200_OK,
+    summary="Demo endpoint for calling a patient",
+    description="Simplified endpoint for demo purposes to call a patient with minimal information",
+)
+async def demo_call_patient(patient: DemoPatient):
+    current_datetime = datetime.now()
+    try:
+        customer = Customer(
+            number=patient.number,
+        )
+
+        call = vapi_client.calls.create(
+            assistant_id=settings.ASSISTANT_ID,
+            customer=customer,
+            phone_number_id=settings.PHONE_NUMBER_ID,
+            assistant_overrides={
+                "variable_values": {
+                    "first_name": patient.first_name,
+                    "last_name": patient.last_name,
+                    "dob": patient.dob,
+                    "email": patient.email,
+                    "current_date": current_datetime.strftime("%Y-%m-%d"),
+                    "current_day": current_datetime.strftime("%A"),
+                }
+            },
+        )
+        
+        return {
+            "success": True,
+            "message": f"Demo call initiated to {patient.first_name} {patient.last_name} at {patient.number}",
+            "call_id": call.id,
+            "call_status": call.status,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except ApiError as e:
+        error_detail = str(e.body) if hasattr(e, "body") else str(e)
+        raise HTTPException(
+            status_code=(
+                e.status_code
+                if hasattr(e, "status_code")
+                else status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail={
+                "message": "Failed to create demo call",
+                "error": error_detail,
+                "patient": patient.model_dump(),
+            },
         )
 
