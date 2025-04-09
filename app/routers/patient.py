@@ -172,24 +172,31 @@ async def get_calls(limit: int = 1):
                 stereo_recording_url = None
                 if messages:
                     for message in messages:
-                        if message["role"] == "tool_calls":
-                            for tool_call in message["tool_calls"]:
+                        if message.get("role") == "tool_calls" and "tool_calls" in message:
+                            for tool_call in message.get("tool_calls", []):
                                 if (
-                                    tool_call["function"]["name"]
-                                    == "sendAppointmentEmail"
+                                    isinstance(tool_call, dict) 
+                                    and "function" in tool_call
+                                    and "name" in tool_call["function"]
+                                    and tool_call["function"]["name"] == "sendAppointmentEmail"
+                                    and "arguments" in tool_call["function"]
                                 ):
                                     arguments = json.loads(
                                         tool_call["function"]["arguments"]
                                     )
                         elif (
                             message.get("type") == "function"
+                            and "function" in message
+                            and "name" in message["function"]
                             and message["function"]["name"] == "sendAppointmentEmail"
+                            and "arguments" in message["function"]
                         ):
                             arguments = json.loads(message["function"]["arguments"])
 
                         if (
                             message.get("role") == "tool_call_result"
                             and message.get("name") == "sendAppointmentEmail"
+                            and "result" in message
                         ):
                             status = message["result"]
 

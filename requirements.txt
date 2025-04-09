@@ -1,11 +1,11 @@
 fastapi==0.115.5
 uvicorn==0.32.0
-pydantic
+pydantic==2.11.3
 pydantic-settings==2.6.1
 pydantic[email]
 python-dotenv==1.0.1
 requests==2.32.3
-vapi_server_sdk==0.6.2
+vapi_server_sdk==1.1.0
 
 # database
 sqlalchemy==2.0.38
