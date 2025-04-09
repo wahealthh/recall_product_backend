@@ -20,3 +20,6 @@ jinja2==3.1.5
 
 # async requests
 httpx==0.28.1
+
+# rate limiting
+slowapi==0.1.9

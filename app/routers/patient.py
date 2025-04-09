@@ -1,9 +1,10 @@
 from datetime import datetime
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends, Request
 from app.utils.patient import get_due_patients_util
 from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
+from app.utils.limiter import limiter
 
 from app.schema.patient import CallHistory, Customer, Patient, DemoPatient
 from app.config.config import settings
@@ -286,7 +287,8 @@ async def delete_call(call_id: str):
     summary="Demo endpoint for calling a patient",
     description="Simplified endpoint for demo purposes to call a patient with minimal information",
 )
-async def demo_call_patient(patient: DemoPatient):
+@limiter.limit("3/hour")
+async def demo_call_patient(patient: DemoPatient, request: Request):
     current_datetime = datetime.now()
     try:
         customer = Customer(

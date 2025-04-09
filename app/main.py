@@ -4,8 +4,13 @@ from app.routers import patient
 from app.routers import mail
 from app.routers import admin
 from app.routers import practice
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.utils.limiter import limiter
 
 app = fastapi.FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +32,11 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
+    return {"message": "Hello, World!"}
+
+@app.get("/test-rate-limit")
+@limiter.limit("3/hour")
+async def test_rate_limit(request: fastapi.Request):
     return {"message": "Hello, World!"}
 
 
