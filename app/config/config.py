@@ -3,7 +3,7 @@
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import EmailStr
-
+from typing import List
 
 from dotenv import load_dotenv
 
@@ -32,6 +32,27 @@ class Settings(BaseSettings):
     DB_NAME: str
     DB_HOST: str
     DB_PORT: str
+    
+    # CORS settings
+    CORS_ORIGINS: List[str] = [
+        "https://wahealth.co.uk",
+        "https://www.wahealth.co.uk",
+        "http://localhost:5174",
+        "http://localhost:5173",
+        "https://wa-health-pwa.onrender.com",
+        "http://localhost:8001",
+        "https://app.wahealth.co.uk",
+        "http://localhost:8000",
+    ]
+    
+    # Authentication service settings
+    AUTH_SERVICE_URL: str = "https://auth.wahealth.co.uk"
+    AUTH_TOKEN_URL: str = "/auth/token"
+    AUTH_VERIFY_TOKEN_URL: str = "/auth/verify_token"
+    AUTH_REGISTER_URL: str = "/auth/register"
+    
+    # VAPI settings
+    VAPI_BASE_URL: str = "https://api.vapi.ai/"
 
 
 settings = Settings()

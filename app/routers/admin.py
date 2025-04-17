@@ -45,11 +45,10 @@ async def register(
     try:
         async with httpx.AsyncClient() as client:
             auth_response = await client.post(
-                "https://auth.wahealth.co.uk/auth/register", json=auth_payload
+                f"{settings.AUTH_SERVICE_URL}{settings.AUTH_REGISTER_URL}", json=auth_payload
             )
             auth_response.raise_for_status()
             auth_data = auth_response.json()
-            print(auth_data)
             user_id = auth_data["id"]
             
             # Forward the cookie from auth service if it exists

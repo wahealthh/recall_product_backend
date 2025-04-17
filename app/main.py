@@ -4,25 +4,18 @@ from app.routers import patient
 from app.routers import mail
 from app.routers import admin
 from app.routers import practice
+from app.routers import recall
 from slowapi.errors import RateLimitExceeded
 from app.utils.limiter import limiter, custom_rate_limit_exceeded_handler
+from app.config.config import settings
 
-app = fastapi.FastAPI()
+app = fastapi.FastAPI(title=settings.project_name)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://wahealth.co.uk",
-        "https://www.wahealth.co.uk",
-        "http://localhost:5174",
-        "http://localhost:5173",
-        "https://wa-health-pwa.onrender.com",
-        "http://localhost:8001",
-        "https://app.wahealth.co.uk",
-        "http://localhost:8000",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,3 +36,4 @@ app.include_router(patient.router)
 app.include_router(mail.router)
 app.include_router(admin.router)
 app.include_router(practice.router)
+app.include_router(recall.router)

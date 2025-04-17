@@ -2,8 +2,9 @@ from fastapi import Depends, HTTPException, status
 import httpx
 from typing import Optional
 from app.utils.cookies import OAuth2PasswordBearerWithCookie
+from app.config.config import settings
 
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="https://auth.wahealth.co.uk/auth/token")
+oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl=f"{settings.AUTH_SERVICE_URL}{settings.AUTH_TOKEN_URL}")
 
 
 async def verify_token(token: str = Depends(oauth2_scheme)):
@@ -12,10 +13,11 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         async with httpx.AsyncClient() as client:
             # Send token in the expected format
             response = await client.post(
-                "https://auth.wahealth.co.uk/auth/verify_token",
+                f"{settings.AUTH_SERVICE_URL}{settings.AUTH_VERIFY_TOKEN_URL}",
                 json={"token": token} 
             )
 
+            print(response.json())
             if response.json().get("is_verified") == False:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,7 +67,7 @@ async def verify_unverified_user(token: str = Depends(oauth2_scheme)):
         async with httpx.AsyncClient() as client:
             # Send token in the expected format
             response = await client.post(
-                "https://auth.wahealth.co.uk/auth/verify_token",
+                f"{settings.AUTH_SERVICE_URL}{settings.AUTH_VERIFY_TOKEN_URL}",
                 json={"token": token} 
             )
             
