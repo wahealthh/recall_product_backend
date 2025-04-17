@@ -4,6 +4,7 @@ from vapi.core.client_wrapper import SyncClientWrapper
 from vapi.core.api_error import ApiError
 from json.decoder import JSONDecodeError
 import httpx
+from app.config.config import settings
 
 
 class CustomCallsClient(CallsClient):
@@ -29,7 +30,7 @@ class CustomVapi(Vapi):
         # Initialize the base client first
         self.token = token
         self.httpx_client = httpx.Client(
-            base_url="https://api.vapi.ai/",
+            base_url=settings.VAPI_BASE_URL,
             headers={"Authorization": f"Bearer {token}"},
         )
         self._client_wrapper = SyncClientWrapper(self.httpx_client)

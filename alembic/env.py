@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 from app.models.base_model import Base
 from app.models.practice import Practice
 from app.models.admin import Admin
+from app.models.recall_group import RecallGroup
+from app.models.recall_patient import RecallPatient
 # from app.models.staff import Staff
 
 # this is the Alembic Config object, which provides

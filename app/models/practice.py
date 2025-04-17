@@ -15,3 +15,4 @@ class Practice(BaseModel, Base):
     admin_id: Mapped[str] = mapped_column(ForeignKey("admin.id"), nullable=False)
 
     admin = relationship("Admin", back_populates="practice")
+    recall_groups = relationship("RecallGroup", back_populates="practice")
