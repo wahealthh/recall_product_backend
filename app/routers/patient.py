@@ -5,9 +5,17 @@ from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
 from app.utils.limiter import limiter
+from pydantic import BaseModel
+from typing import List, Optional
+from sqlalchemy.orm import Session
 
 from app.schema.patient import CallHistory, Customer, Patient, DemoPatient
 from app.config.config import settings
+from app.engine.load import load
+from app.models.recall_group import RecallGroup
+from app.models.recall_patient import RecallPatient
+from app.models.practice import Practice
+from app.utils.auth import verify_admin
 
 
 vapi_client = Vapi(
@@ -15,6 +23,9 @@ vapi_client = Vapi(
 )
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
+
+
+
 
 
 @router.get(
@@ -28,43 +39,96 @@ async def get_due_patients():
 
 
 @router.post(
-    "/call_due_patients",
+    "/groups/{group_id}/call",
     status_code=status.HTTP_200_OK,
-    summary="Call due patients",
-    description="Call due patients",
+    summary="Call patients in a group",
+    description="Call patients from a specific recall group",
 )
-async def call_due_patients():
+async def call_due_patients(
+    group_id: str,
+    call_context: Optional[str] = None,
+    admin_data: dict = Depends(verify_admin),
+    db: Session = Depends(load)
+):
     current_datetime = datetime.now()
-    due_patients = await get_due_patients()
-    if not due_patients:
+    
+    # Get the practice for this admin
+    practice = db.query_eng(Practice).filter(Practice.admin_id == admin_data["user_id"]).first()
+    
+    if not practice:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No due patients found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Practice not found for this admin"
         )
-    customer = Customer.model_validate(due_patients[15])
-    try:
-        patient_info = due_patients[15]
-        call = vapi_client.calls.create(
-            assistant_id=settings.ASSISTANT_ID,
-            customer=customer,
-            phone_number_id=settings.PHONE_NUMBER_ID,
-            assistant_overrides={
+    
+    # Get the group with a join to its practice to verify admin access
+    group = db.query_eng(RecallGroup).filter(
+        RecallGroup.id == group_id,
+        RecallGroup.practice_id == practice.id
+    ).first()
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recall group not found or you don't have permission to access it"
+        )
+    
+    # Fetch patients from the database based on the group_id
+    patients = db.query_eng(RecallPatient).filter(
+        RecallPatient.recall_group_id == group_id
+    ).all()
+    
+    if not patients:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No patients found in group with ID: {group_id}",
+        )
+    
+    call_results = []
+    failed_calls = []
+    
+    for patient in patients:
+        customer = Customer(
+            number=patient.number,
+        )
+        try:
+            call = vapi_client.calls.create(
+                assistant_id=settings.ASSISTANT_ID,
+                customer=customer,
+                phone_number_id=settings.PHONE_NUMBER_ID,
+                assistant_overrides={
                 "variable_values": {
-                    "first_name": patient_info["first_name"],
-                    "last_name": patient_info["last_name"],
-                    "dob": patient_info["dob"],
-                    "email": patient_info["email"],
+                    "first_name": patient.first_name,
+                    "last_name": patient.last_name,
+                    "dob": patient.dob,
+                    "email": patient.email,
                     "current_date": current_datetime.strftime("%Y-%m-%d"),
                     "current_day": current_datetime.strftime("%A"),
+                    "notes": patient.notes,
+                    "call_context": call_context
                 }
             },
         )
-        return call
-    except ApiError as e:
-        raise HTTPException(
-            status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"message": "Failed to create call", "error": str(e.body)},
-        )
+            call_results.append({
+                "patient": f"{patient.first_name} {patient.last_name}",
+                "call_id": call.id,
+                "status": call.status,
+                "created_at": call.created_at
+            })
+        except ApiError as e:
+            error_detail = str(e.body) if hasattr(e, "body") else str(e)
+            failed_calls.append({
+                "patient": f"{patient.first_name} {patient.last_name}",
+                "error": error_detail
+            })
+    
+    return {
+        "success": len(call_results),
+        "failed": len(failed_calls),
+        "calls": call_results,
+        "errors": failed_calls,
+        "group": group.name
+    }
 
 
 @router.post(

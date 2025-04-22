@@ -63,5 +63,4 @@ class RecallGroupWithPatientsResponse(RecallGroupResponse):
 
 class CSVPatientImport(BaseModel):
     """Schema for importing patients from CSV file"""
-    group_id: str
     file_content: str 
