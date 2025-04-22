@@ -5,6 +5,8 @@ from vapi import Vapi
 from vapi.core.api_error import ApiError
 import json
 from app.utils.limiter import limiter
+from pydantic import BaseModel
+from typing import List, Optional
 
 from app.schema.patient import CallHistory, Customer, Patient, DemoPatient
 from app.config.config import settings
@@ -15,6 +17,11 @@ vapi_client = Vapi(
 )
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
+
+
+class CallDuePatientsRequest(BaseModel):
+    patients: List[Patient]
+    call_context: Optional[str] = None
 
 
 @router.get(
@@ -33,38 +40,58 @@ async def get_due_patients():
     summary="Call due patients",
     description="Call due patients",
 )
-async def call_due_patients():
+async def call_due_patients(request: CallDuePatientsRequest):
     current_datetime = datetime.now()
-    due_patients = await get_due_patients()
-    if not due_patients:
+    if not request.patients:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No due patients found",
         )
-    customer = Customer.model_validate(due_patients[15])
-    try:
-        patient_info = due_patients[15]
-        call = vapi_client.calls.create(
-            assistant_id=settings.ASSISTANT_ID,
-            customer=customer,
-            phone_number_id=settings.PHONE_NUMBER_ID,
-            assistant_overrides={
+    
+    call_results = []
+    failed_calls = []
+    
+    for patient in request.patients:
+        customer = Customer(
+            number=patient.number,
+        )
+        try:
+            call = vapi_client.calls.create(
+                assistant_id=settings.ASSISTANT_ID,
+                customer=customer,
+                phone_number_id=settings.PHONE_NUMBER_ID,
+                assistant_overrides={
                 "variable_values": {
-                    "first_name": patient_info["first_name"],
-                    "last_name": patient_info["last_name"],
-                    "dob": patient_info["dob"],
-                    "email": patient_info["email"],
+                    "first_name": patient.first_name,
+                    "last_name": patient.last_name,
+                    "dob": patient.dob,
+                    "email": patient.email,
                     "current_date": current_datetime.strftime("%Y-%m-%d"),
                     "current_day": current_datetime.strftime("%A"),
+                    "notes": patient.notes,
+                    "call_context": request.call_context
                 }
             },
         )
-        return call
-    except ApiError as e:
-        raise HTTPException(
-            status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"message": "Failed to create call", "error": str(e.body)},
-        )
+            call_results.append({
+                "patient": f"{patient.first_name} {patient.last_name}",
+                "call_id": call.id,
+                "status": call.status,
+                "created_at": call.created_at
+            })
+        except ApiError as e:
+            error_detail = str(e.body) if hasattr(e, "body") else str(e)
+            failed_calls.append({
+                "patient": f"{patient.first_name} {patient.last_name}",
+                "error": error_detail
+            })
+    
+    return {
+        "success": len(call_results),
+        "failed": len(failed_calls),
+        "calls": call_results,
+        "errors": failed_calls
+    }
 
 
 @router.post(

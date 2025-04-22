@@ -9,6 +9,7 @@ class Patient(BaseModel):
     email: str
     number: str
     dob: str
+    notes: Optional[str] = None
 
 
 class DemoPatient(BaseModel):
