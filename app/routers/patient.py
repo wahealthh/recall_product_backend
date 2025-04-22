@@ -7,9 +7,15 @@ import json
 from app.utils.limiter import limiter
 from pydantic import BaseModel
 from typing import List, Optional
+from sqlalchemy.orm import Session
 
 from app.schema.patient import CallHistory, Customer, Patient, DemoPatient
 from app.config.config import settings
+from app.engine.load import load
+from app.models.recall_group import RecallGroup
+from app.models.recall_patient import RecallPatient
+from app.models.practice import Practice
+from app.utils.auth import verify_admin
 
 
 vapi_client = Vapi(
@@ -19,9 +25,7 @@ vapi_client = Vapi(
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
 
-class CallDuePatientsRequest(BaseModel):
-    patients: List[Patient]
-    call_context: Optional[str] = None
+
 
 
 @router.get(
@@ -35,23 +39,55 @@ async def get_due_patients():
 
 
 @router.post(
-    "/call_due_patients",
+    "/groups/{group_id}/call",
     status_code=status.HTTP_200_OK,
-    summary="Call due patients",
-    description="Call due patients",
+    summary="Call patients in a group",
+    description="Call patients from a specific recall group",
 )
-async def call_due_patients(request: CallDuePatientsRequest):
+async def call_due_patients(
+    group_id: str,
+    call_context: Optional[str] = None,
+    admin_data: dict = Depends(verify_admin),
+    db: Session = Depends(load)
+):
     current_datetime = datetime.now()
-    if not request.patients:
+    
+    # Get the practice for this admin
+    practice = db.query_eng(Practice).filter(Practice.admin_id == admin_data["user_id"]).first()
+    
+    if not practice:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No due patients found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Practice not found for this admin"
+        )
+    
+    # Get the group with a join to its practice to verify admin access
+    group = db.query_eng(RecallGroup).filter(
+        RecallGroup.id == group_id,
+        RecallGroup.practice_id == practice.id
+    ).first()
+    
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recall group not found or you don't have permission to access it"
+        )
+    
+    # Fetch patients from the database based on the group_id
+    patients = db.query_eng(RecallPatient).filter(
+        RecallPatient.recall_group_id == group_id
+    ).all()
+    
+    if not patients:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No patients found in group with ID: {group_id}",
         )
     
     call_results = []
     failed_calls = []
     
-    for patient in request.patients:
+    for patient in patients:
         customer = Customer(
             number=patient.number,
         )
@@ -69,7 +105,7 @@ async def call_due_patients(request: CallDuePatientsRequest):
                     "current_date": current_datetime.strftime("%Y-%m-%d"),
                     "current_day": current_datetime.strftime("%A"),
                     "notes": patient.notes,
-                    "call_context": request.call_context
+                    "call_context": call_context
                 }
             },
         )
@@ -90,7 +126,8 @@ async def call_due_patients(request: CallDuePatientsRequest):
         "success": len(call_results),
         "failed": len(failed_calls),
         "calls": call_results,
-        "errors": failed_calls
+        "errors": failed_calls,
+        "group": group.name
     }
 
 
